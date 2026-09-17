@@ -1459,6 +1459,11 @@ ARC_DEF_DISAS_UIMM32(dmb, dmb, a->imm)
 
 ARC_DEF_DISAS_NO_OP(dsync, dsync)
 
+ARC_DEF_DISAS_UIMM32(enter_s, enter_s, a->imm)
+ARC_DEF_DISAS_UIMM32(leave_s, leave_s, a->imm)
+ARC_DEF_DISAS_UIMM32(enter, enter, a->imm)
+ARC_DEF_DISAS_UIMM32(leave, leave, a->imm)
+
 /* EX<.di> b,[c] */
 static bool trans_ex_sop_reg_reg(DisasContext *ctx, arg_ex_sop_reg_reg *a)
 {

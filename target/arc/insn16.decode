@@ -86,6 +86,14 @@ cmp_s_b_h  01110 ...... 100 .. @hreg_reg
 cmp_s_h_s3 01110 ...... 101 .. @hreg_s3
 cmp_s_b_u7 11100 b:3 1 imm:7
 
+### ENTER_S, LEAVE_S
+
+%enter_s_u6 8:2 1:4
+%leave_s_u7 8:3 1:4
+
+enter_s 110000 .. 111 .... 0 imm=%enter_s_u6
+leave_s 11000 ... 110 .... 0 imm=%leave_s_u7
+
 ### MOV_S
 
 mov_s_b_h   01110 ...... 111 .. @hreg_reg

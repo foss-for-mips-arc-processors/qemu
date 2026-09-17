@@ -1606,6 +1606,7 @@ ARC64_DEF_TRANS_DOP_COND_U6(xorl)
 #include "insn_trans/trans_aux.c.inc"
 #include "insn_trans/trans_branch.c.inc"
 #include "insn_trans/trans_divrem.c.inc"
+#include "insn_trans/trans_enter_leave.c.inc"
 #include "insn_trans/trans_jump.c.inc"
 #include "insn_trans/trans_ld.c.inc"
 #include "insn_trans/trans_lp.c.inc"

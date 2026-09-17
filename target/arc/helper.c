@@ -68,8 +68,6 @@ void arc_cpu_do_unaligned_access(CPUState *cs,
 {
     CPUARCState *env = cpu_env(cs);
 
-    g_assert(env->aux_status32.disable_alignment_checking == 0);
-
     env->excp_mem_addr = addr;
     cs->exception_index = ARC_EXCP_MISALIGNED_DATA;
     cpu_loop_exit_restore(cs, retaddr);
@@ -337,8 +335,6 @@ void arc_cpu_do_interrupt(CPUState *cs)
 
         break;
     case ARC_EXCP_MISALIGNED_DATA:
-        g_assert(env->aux_status32.disable_alignment_checking == 0);
-
         env->aux_eret = env->pc;
         env->aux_ecr.vector_number = ARC_EXCP_CLASS_MISALIGNED;
         env->aux_efa = env->excp_mem_addr;
