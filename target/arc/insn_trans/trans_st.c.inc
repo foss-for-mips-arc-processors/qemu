@@ -1,7 +1,8 @@
 #include "translate.h"
 
-/* FIXME: Clear the atomic lock flag (env->atomic_lf) on a store that hits the
- * locked physical address (env->atomic_lpa) 
+/*
+ * TODO: Clear the atomic lock flag (env->atomic_lf) on a store that hits the
+ * locked address instead of comparing values in SCOND, see atomic_helper.c.
  */
 
 static bool trans_st_reg(DisasContext *ctx, arg_st_reg *a)
