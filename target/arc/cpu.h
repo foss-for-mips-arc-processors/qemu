@@ -117,8 +117,9 @@ typedef struct CPUArchState {
     arc_aux_status_t aux_erstatus;
 
     /* Internal state of atomics */
-    uint32_t     atomic_lf;
-    target_ulong atomic_lpa;
+    uint32_t     atomic_lf;       /* Lock flag */
+    target_ulong atomic_lpa;      /* Locked physical address */
+    uint64_t     atomic_lval;     /* Value read by the last LLOCK(D) */
 
     /* General auxiliary registers */
     target_ulong aux_int_vector_base;
