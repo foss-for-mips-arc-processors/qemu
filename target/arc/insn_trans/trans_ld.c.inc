@@ -11,7 +11,10 @@ static bool trans_ld_offset(DisasContext *ctx, arg_ld_offset *a)
     arc_gen_check_not_lp_count(ctx, a->a);
     arc_gen_ldst_writeback_prologue(ctx, address, base, offset, a->aa, ARC_ZZ_WORD);
 
-    tcg_gen_qemu_ld_tl(dest, address, ctx->mem_idx, memop);
+    /* Do not make a real load for PREFETCH or PREFETCHW */
+    if (a->a != ARC_REGNUM_LIMM) {
+        tcg_gen_qemu_ld_tl(dest, address, ctx->mem_idx, memop);
+    }
 
     if (a->aa == ARC_AA_POST || a->aa == ARC_AA_PRE) {
         arc_insn_save_reg_tl(ctx, a->b, base);
@@ -59,7 +62,10 @@ static bool trans_ld_reg(DisasContext *ctx, arg_ld_reg *a)
     arc_gen_check_not_lp_count(ctx, a->a);
     arc_gen_ldst_writeback_prologue(ctx, address, base, offset, a->aa, ARC_ZZ_WORD);
 
-    tcg_gen_qemu_ld_tl(dest, address, ctx->mem_idx, memop);
+    /* Do not make a real load for PREFETCH or PREFETCHW */
+    if (a->a != ARC_REGNUM_LIMM) {
+        tcg_gen_qemu_ld_tl(dest, address, ctx->mem_idx, memop);
+    }
 
     if (a->aa == ARC_AA_POST || a->aa == ARC_AA_PRE) {
         arc_insn_save_reg_tl(ctx, a->b, base);
