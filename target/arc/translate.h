@@ -48,6 +48,8 @@ static TCGv_i32 cpu_DZf;
 static TCGv cpu_bta;
 static TCGv cpu_eret;
 static TCGv cpu_semihost_eret;
+static TCGv_i32 cpu_excp_insn;
+static TCGv_i32 cpu_excp_insn_len;
 
 #ifdef TARGET_ARCV2
 static TCGv cpu_Lf;

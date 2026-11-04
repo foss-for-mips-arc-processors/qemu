@@ -150,6 +150,8 @@ typedef struct CPUArchState {
     uint32_t     excp_parameter;
     bool         excp_double_fault;
     target_ulong excp_mem_addr;
+    uint32_t     excp_insn;     /* Encoding of the instruction being translated */
+    uint32_t     excp_insn_len;
 
     /*
      * IRQ registers

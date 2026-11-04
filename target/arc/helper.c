@@ -7,7 +7,6 @@
 #include "cpu.h"
 #include "cpu_bits.h"
 #include "exec/log.h"
-#include "accel/tcg/cpu-ldst.h"
 #include "qemu/plugin.h"
 #ifndef CONFIG_USER_ONLY
 #include "system/runstate.h"
@@ -123,26 +122,6 @@ static const char *exception_to_name(ARCException exception) {
         return "Machine Check (overlapping TLB entries)";
     default:
         return "<unknown exception name>";
-    }
-}
-
-static uint32_t arc_fetch_insn(CPUARCState *env, target_ulong addr, uint32_t *insn)
-{
-    uint16_t hw0 = cpu_lduw_data(env, addr);
-    int major = (hw0 >> 11) & 0x1F;
-
-#ifdef TARGET_ARCV3_64
-    if (major <= 0x07 || major == 0x0B) {
-#else
-    if (major <= 0x07) {
-#endif
-        /* 32-bit instruction: fetch the second halfword */
-        uint16_t hw1 = cpu_lduw_data(env, addr + 2);
-        *insn = ((uint32_t)hw0 << 16) | hw1;
-        return 4;
-    } else {
-        *insn = hw0;
-        return 2;
     }
 }
 
@@ -395,14 +374,11 @@ void arc_cpu_do_interrupt(CPUState *cs)
         env->aux_int_vector_base,
         env->aux_ecr.vector_number);
 
-    if (excp == ARC_EXCP_CLASS_INSTRUCTION_ERROR) {
-        uint32_t insn;
-
-        if (4 == arc_fetch_insn(env, env->aux_efa, &insn)) {
-            qemu_log_mask(LOG_GUEST_ERROR, "arc: exception: invalid instruction encoding - 0x%08x\n", insn);
-        } else {
-            qemu_log_mask(LOG_GUEST_ERROR, "arc: exception: invalid instruction encoding - 0x%04x\n", (uint16_t)insn);
-        }
+    if (excp == ARC_EXCP_ILLEGAL_INSTRUCTION ||
+        excp == ARC_EXCP_ILLEGAL_INSTRUCTION_SEQUENCE) {
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "arc: exception: invalid instruction encoding - 0x%0*x\n",
+                      env->excp_insn_len == 4 ? 8 : 4, env->excp_insn);
     }
 
     qemu_log_mask(CPU_LOG_INT, "arc: exception: handler entry pc=0x" TARGET_FMT_lx "\n", env->pc);

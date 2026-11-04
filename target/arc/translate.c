@@ -67,6 +67,14 @@ static void arc_tr_translate_insn(DisasContextBase *dcbase, CPUState *cs)
     arc_fetch_insn(ctx);
     ctx->base.pc_next = ctx->pc + ctx->insn_len;
 
+    /*
+     * Keep the encoding that was just fetched. Exception logging reads this
+     * instead of guest memory, which would use the post-entry MMU index.
+     */
+    /* TODO: This may be too slow, save it in exceptions */
+    tcg_gen_movi_i32(cpu_excp_insn, ctx->insn);
+    tcg_gen_movi_i32(cpu_excp_insn_len, ctx->insn_len);
+
     switch (ctx->insn_len) {
     case 4:
         decode_status = decode_insn32(ctx, ctx->insn);
@@ -214,6 +222,8 @@ void arc_translate_init(void)
     cpu_bta = tcg_global_mem_new(tcg_env, offsetof(CPUARCState, aux_bta), "bta");
     cpu_eret = tcg_global_mem_new(tcg_env, offsetof(CPUARCState, aux_eret), "eret");
     cpu_semihost_eret = tcg_global_mem_new(tcg_env, offsetof(CPUARCState, excp_semihost_eret), "semihost_eret");
+    cpu_excp_insn = tcg_global_mem_new_i32(tcg_env, offsetof(CPUARCState, excp_insn), "excp_insn");
+    cpu_excp_insn_len = tcg_global_mem_new_i32(tcg_env, offsetof(CPUARCState, excp_insn_len), "excp_insn_len");
 
 #ifdef TARGET_ARCV2
     cpu_Lf = tcg_global_mem_new(tcg_env, offsetof(CPUARCState, aux_status32.disable_zol), "Lf");
