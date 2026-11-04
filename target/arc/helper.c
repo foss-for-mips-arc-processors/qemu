@@ -7,11 +7,26 @@
 #include "cpu.h"
 #include "cpu_bits.h"
 #include "exec/log.h"
-#include "system/runstate.h"
-#include "semihosting/semihost.h"
 #include "accel/tcg/cpu-ldst.h"
 #include "qemu/plugin.h"
+#ifndef CONFIG_USER_ONLY
+#include "system/runstate.h"
+#include "semihosting/semihost.h"
 #include "irq.h"
+#endif
+
+G_GNUC_PRINTF(1, 2) void arc_exit_with_error(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    error_vreport(fmt, ap);
+    va_end(ap);
+
+    exit(EXIT_FAILURE);
+}
+
+#ifndef CONFIG_USER_ONLY
 
 void arc_cpu_do_transaction_failed(CPUState *cs, hwaddr physaddr, vaddr addr,
                                    unsigned size, MMUAccessType access_type,
@@ -49,17 +64,6 @@ void arc_cpu_do_transaction_failed(CPUState *cs, hwaddr physaddr, vaddr addr,
 
     cs->exception_index = ARC_EXCP_MEMORY_ERROR;
     cpu_loop_exit_restore(cs, retaddr);
-}
-
-G_GNUC_PRINTF(1, 2) void arc_exit_with_error(const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    error_vreport(fmt, ap);
-    va_end(ap);
-
-    exit(EXIT_FAILURE);
 }
 
 void arc_cpu_do_unaligned_access(CPUState *cs,
@@ -411,6 +415,8 @@ void arc_cpu_do_interrupt(CPUState *cs)
         exit(EXIT_FAILURE);
     }
 }
+
+#endif /* !CONFIG_USER_ONLY */
 
 void arc_cpu_dump_state(CPUState *cs, FILE *f, int flags)
 {
