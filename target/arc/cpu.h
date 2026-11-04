@@ -12,7 +12,7 @@
 #include "aux.h"
 
 #ifdef CONFIG_USER_ONLY
-#error "ARC does not support user mode emulation"
+#define MMU_USER_IDX 1
 #endif
 
 #define TARGET_LONG_BITS_32 32
@@ -286,10 +286,14 @@ struct ARCCPUClass {
 #define CPU_RESOLVING_TYPE TYPE_ARC_CPU
 
 void arc_cpu_dump_state(CPUState *cpu, FILE *f, int flags);
-void arc_cpu_do_interrupt(CPUState *cpu);
-hwaddr arc_cpu_get_phys_page_debug(CPUState *cpu, vaddr addr);
 int arc_cpu_gdb_read_register(CPUState *cpu, GByteArray *buf, int reg);
 int arc_cpu_gdb_write_register(CPUState *cpu, uint8_t *buf, int reg);
+uint32_t arc_cpu_effective_gpr_bank(CPUARCState *env, uint32_t n);
+void arc_cpu_switch_gpr_bank(CPUARCState *env, uint32_t n);
+
+#ifndef CONFIG_USER_ONLY
+void arc_cpu_do_interrupt(CPUState *cpu);
+hwaddr arc_cpu_get_phys_page_debug(CPUState *cpu, vaddr addr);
 void arc_cpu_do_transaction_failed(CPUState *cpu, hwaddr physaddr, vaddr addr,
                                    unsigned size, MMUAccessType access_type,
                                    int mmu_idx, MemTxAttrs attrs,
@@ -297,11 +301,10 @@ void arc_cpu_do_transaction_failed(CPUState *cpu, hwaddr physaddr, vaddr addr,
 G_NORETURN void arc_cpu_do_unaligned_access(CPUState *cpu, vaddr addr,
                                             MMUAccessType access_type, int mmu_idx,
                                             uintptr_t retaddr);
-uint32_t arc_cpu_effective_gpr_bank(CPUARCState *env, uint32_t n);
-void arc_cpu_switch_gpr_bank(CPUARCState *env, uint32_t n);
 
 /* Semihosting entry point (arc-semi.c) */
 void do_arc_semihosting(CPUARCState *env);
+#endif
 
 void arc_translate_init(void);
 void arc_translate_code(CPUState *cs, TranslationBlock *tb,
