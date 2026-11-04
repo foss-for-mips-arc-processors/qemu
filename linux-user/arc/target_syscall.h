@@ -10,6 +10,8 @@
 #define TARGET_MCL_FUTURE  2
 #define TARGET_MCL_ONFAULT 4
 
+#define MMAP_SHIFT TARGET_PAGE_BITS
+
 /* arch/arc/Kconfig selects CLONE_BACKWARDS */
 #define TARGET_CLONE_BACKWARDS
 
