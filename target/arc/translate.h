@@ -7,7 +7,9 @@
 #include "exec/translator.h"
 #include "exec/helper-proto.h"
 #include "exec/helper-gen.h"
+#ifndef CONFIG_USER_ONLY
 #include "semihosting/semihost.h"
+#endif
 #include "cpu.h"
 
 #define HELPER_H "helper.h"

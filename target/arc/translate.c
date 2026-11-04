@@ -1377,12 +1377,16 @@ static inline void arc_gen_swi(DisasContext *ctx, int code)
 
     ARCException exception;
 
+#ifndef CONFIG_USER_ONLY
     if (semihosting_enabled(false)) {
         exception = ARC_EXCP_SEMIHOSTING;
         tcg_gen_movi_tl(cpu_semihost_eret, ctx->base.pc_next);
     } else {
         exception = ARC_EXCP_SWI;
     }
+#else
+    exception = ARC_EXCP_SWI;
+#endif
 
     arc_gen_save_pc(ctx);
     gen_helper_raise_exception(tcg_env,
