@@ -6,15 +6,16 @@
 #include "exec/page-protection.h"
 #include "exec/translation-block.h"
 #include "exec/target_page.h"
-#include "hw/loader.h"
 #include "tcg/debug-assert.h"
 #include "accel/tcg/cpu-ops.h"
 #include "accel/tcg/cpu-ldst.h"
 #include "hw/qdev-properties.h"
 #include "gdbstub.h"
+#ifndef CONFIG_USER_ONLY
 #include "timer.h"
 #include "mmu.h"
 #include "irq.h"
+#endif
 
 /* TODO: Remove static and reuse everywhere? */
 static void arc_cpu_set_pc(CPUState *cs, vaddr value)
@@ -123,10 +124,12 @@ static void arc_restore_state_to_opc(CPUState *cs,
     env->gpr[ARC_REGNUM_PCL] = arc_pc_to_pcl(env->pc);
 }
 
+#ifndef CONFIG_USER_ONLY
 static bool arc_cpu_has_work(CPUState *cs)
 {
     return cs->interrupt_request & CPU_INTERRUPT_HARD;
 }
+#endif
 
 static int arc_cpu_mmu_index(CPUState *cs, bool ifetch)
 {
@@ -171,7 +174,18 @@ static void arc_cpu_reset_hold(Object *obj, ResetType type)
         env->aux_irq_bank[i].enable = 1;
     }
 
+#ifdef CONFIG_USER_ONLY
+    /*
+     * User mode emulation runs the guest in the user privilege level.
+     * Like the Linux kernel, start with ZOL inhibited (cleared by LP) and
+     * with unaligned memory accesses enabled.
+     */
+    env->aux_status32.user_mode = 1;
+    env->aux_status32.disable_zol = 1;
+    env->aux_status32.disable_alignment_checking = 1;
+#else
     arc_timers_reset(cpu);
+#endif
 }
 
 static ObjectClass *arc_cpu_class_by_name(const char *cpu_model)
@@ -443,12 +457,61 @@ static const gchar *arc_gdb_arch_name(CPUState *cs)
 #endif
 }
 
+#ifdef CONFIG_USER_ONLY
+static void arc_cpu_record_sigsegv(CPUState *cs, vaddr addr,
+                                   MMUAccessType access_type,
+                                   bool maperr, uintptr_t retaddr)
+{
+    CPUARCState *env = cpu_env(cs);
+
+    if (maperr) {
+        switch (access_type) {
+        case MMU_INST_FETCH:
+            cs->exception_index = ARC_EXCP_TLB_MISS_I;
+            break;
+        case MMU_DATA_LOAD:
+            cs->exception_index = ARC_EXCP_TLB_MISS_D_LD;
+            break;
+        default:
+            cs->exception_index = ARC_EXCP_TLB_MISS_D_ST;
+            break;
+        }
+    } else {
+        switch (access_type) {
+        case MMU_INST_FETCH:
+            cs->exception_index = ARC_EXCP_PROTV_EX;
+            break;
+        case MMU_DATA_LOAD:
+            cs->exception_index = ARC_EXCP_PROTV_LD;
+            break;
+        default:
+            cs->exception_index = ARC_EXCP_PROTV_ST;
+            break;
+        }
+    }
+
+    env->excp_mem_addr = addr;
+    cpu_loop_exit_restore(cs, retaddr);
+}
+
+static void arc_cpu_record_sigbus(CPUState *cs, vaddr addr,
+                                  MMUAccessType access_type,
+                                  uintptr_t retaddr)
+{
+    CPUARCState *env = cpu_env(cs);
+
+    env->excp_mem_addr = addr;
+    cs->exception_index = ARC_EXCP_MISALIGNED_DATA;
+    cpu_loop_exit_restore(cs, retaddr);
+}
+#else
 #include "hw/core/sysemu-cpu-ops.h"
 
 static const struct SysemuCPUOps arc_sysemu_ops = {
     .has_work = arc_cpu_has_work,
     .get_phys_page_debug = arc_cpu_get_phys_page_debug,
 };
+#endif
 
 static const TCGCPUOps arc_tcg_ops = {
     .guest_default_memory_order = TCG_MO_ALL,
@@ -460,19 +523,26 @@ static const TCGCPUOps arc_tcg_ops = {
     .synchronize_from_tb = arc_cpu_synchronize_from_tb,
     .restore_state_to_opc = arc_restore_state_to_opc,
     .mmu_index = arc_cpu_mmu_index,
-    .tlb_fill = arc_mmu_tlb_fill,
+#ifndef CONFIG_USER_ONLY
 #ifdef TARGET_ARCV3_64
     .pointer_wrap = arc_cpu_pointer_wrap,
 #else
     .pointer_wrap = cpu_pointer_wrap_uint32,
 #endif
+#endif
 
+#ifdef CONFIG_USER_ONLY
+    .record_sigsegv = arc_cpu_record_sigsegv,
+    .record_sigbus = arc_cpu_record_sigbus,
+#else
+    .tlb_fill = arc_mmu_tlb_fill,
     .cpu_exec_interrupt = arc_cpu_exec_interrupt,
     .cpu_exec_halt = arc_cpu_has_work,
     .cpu_exec_reset = cpu_reset,
     .do_interrupt = arc_cpu_do_interrupt,
     .do_transaction_failed = arc_cpu_do_transaction_failed,
     .do_unaligned_access = arc_cpu_do_unaligned_access,
+#endif
 };
 
 static const Property arc_properties[] = {
@@ -506,7 +576,9 @@ static void arc_cpu_class_init(ObjectClass *klass, const void *data)
     cc->dump_state = arc_cpu_dump_state;
     cc->set_pc = arc_cpu_set_pc;
     cc->get_pc = arc_cpu_get_pc;
+#ifndef CONFIG_USER_ONLY
     cc->sysemu_ops = &arc_sysemu_ops;
+#endif
     cc->disas_set_info = arc_cpu_disas_set_info;
     cc->gdb_read_register = arc_cpu_gdb_read_register;
     cc->gdb_write_register = arc_cpu_gdb_write_register;
