@@ -4,8 +4,10 @@
 #include "qemu/log.h"
 #include "qemu/log.h"
 #include "exec/helper-proto.h"
+#ifndef CONFIG_USER_ONLY
 #include "system/runstate.h"
 #include "irq.h"
+#endif
 
 G_NORETURN void arc_raise_exception(CPUARCState *env, int exception, int parameter, uintptr_t pc)
 {
@@ -27,9 +29,11 @@ void arc_halt(CPUState *cs)
 
     qemu_log_mask(CPU_LOG_INT, "arc: halt: halting at addr=0x" TARGET_FMT_lx "\n", cpu->env.pc);
 
+#ifndef CONFIG_USER_ONLY
     if (cpu->cfg.exit_on_halt) {
         qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
     }
+#endif
 
     cpu_loop_exit_restore(cs, cpu->env.pc);
 }
@@ -131,6 +135,9 @@ void HELPER(rtie)(CPUARCState *env)
         arc_raise_exception(env, ARC_EXCP_PRIVILEGE_VIOLATION, 0, GETPC());
     }
 
+#ifdef CONFIG_USER_ONLY
+    g_assert_not_reached();
+#else
     CPUState *cs = env_cpu(env);
 
     if (env->aux_status32.exception_state || env->aux_irq_act.active == 0) {
@@ -142,6 +149,7 @@ void HELPER(rtie)(CPUARCState *env)
     }
 
     cpu_loop_exit(cs);
+#endif
 }
 
 uint32_t HELPER(clri)(CPUARCState *env)
@@ -181,3 +189,42 @@ void HELPER(seti)(CPUARCState *env, uint32_t src)
         }
     }
 }
+
+#ifdef CONFIG_USER_ONLY
+/*
+ * User mode emulation runs the guest in the user privilege level only, so
+ * any access to AUX registers is a privilege violation.
+ */
+target_ulong HELPER(aux_reg_read_tl)(CPUARCState *env, target_ulong aux_regnum)
+{
+    arc_raise_exception(env, ARC_EXCP_PRIVILEGE_VIOLATION, 0, GETPC());
+}
+
+uint32_t HELPER(aux_reg_read_i32)(CPUARCState *env, uint32_t aux_regnum)
+{
+    arc_raise_exception(env, ARC_EXCP_PRIVILEGE_VIOLATION, 0, GETPC());
+}
+
+uint64_t HELPER(aux_reg_read_i64)(CPUARCState *env, uint64_t aux_regnum)
+{
+    arc_raise_exception(env, ARC_EXCP_PRIVILEGE_VIOLATION, 0, GETPC());
+}
+
+void HELPER(aux_reg_write_tl)(CPUARCState *env, target_ulong aux_regnum,
+                              target_ulong value)
+{
+    arc_raise_exception(env, ARC_EXCP_PRIVILEGE_VIOLATION, 0, GETPC());
+}
+
+void HELPER(aux_reg_write_i32)(CPUARCState *env, uint32_t aux_regnum,
+                               uint32_t value)
+{
+    arc_raise_exception(env, ARC_EXCP_PRIVILEGE_VIOLATION, 0, GETPC());
+}
+
+void HELPER(aux_reg_write_i64)(CPUARCState *env, uint64_t aux_regnum,
+                               uint64_t value)
+{
+    arc_raise_exception(env, ARC_EXCP_PRIVILEGE_VIOLATION, 0, GETPC());
+}
+#endif
