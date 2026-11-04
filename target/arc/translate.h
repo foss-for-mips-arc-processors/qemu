@@ -514,9 +514,7 @@ static inline TCGv_i64 arc64_insn_load_src_reg(DisasContext *ctx, int regnum)
         tcg_gen_extu_i32_i64(reg, tmp);
         break;
     case ARC_REGNUM_PCL:
-        tmp = arc_insn_load_pcl(ctx);
-        reg = tcg_temp_new_i64();
-        tcg_gen_extu_i32_i64(reg, tmp);
+        reg = arc64_insn_load_pcl(ctx);
         break;
     default:
         reg = arc64_insn_load_gpr(ctx, regnum);
