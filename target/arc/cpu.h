@@ -121,6 +121,11 @@ typedef struct CPUArchState {
     target_ulong atomic_lpa;      /* Locked physical address */
     uint64_t     atomic_lval;     /* Value read by the last LLOCK(D) */
 
+#ifdef CONFIG_USER_ONLY
+    /* Thread pointer of the arc_settls() syscall */
+    target_ulong thr_ptr;
+#endif
+
     /* General auxiliary registers */
     target_ulong aux_int_vector_base;
     target_ulong aux_jli_base;
