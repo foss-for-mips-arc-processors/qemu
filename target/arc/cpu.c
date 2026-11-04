@@ -138,11 +138,22 @@ static int arc_cpu_mmu_index(CPUState *cs, bool ifetch)
     return env->aux_status32.user_mode;
 }
 
-#ifdef TARGET_ARCV3_64
+#ifndef CONFIG_USER_ONLY
+/*
+ * TCG calls it for an access which crosses a page boundary. The
+ * target must adjust it for the case when the address wraps around
+ * the end of the address space. Addresses of 32-bit cores
+ * are 32-bit wide, so the result wraps at 4 GiB. HS6x has 64-bit
+ * addresses and the 64-bit result is correct as it is.
+ */
 static vaddr arc_cpu_pointer_wrap(CPUState *cs, int mmu_idx,
                                   vaddr result, vaddr base)
 {
+#ifdef TARGET_ARCV3_64
     return result;
+#else
+    return (uint32_t)result;
+#endif
 }
 #endif
 
@@ -524,11 +535,7 @@ static const TCGCPUOps arc_tcg_ops = {
     .restore_state_to_opc = arc_restore_state_to_opc,
     .mmu_index = arc_cpu_mmu_index,
 #ifndef CONFIG_USER_ONLY
-#ifdef TARGET_ARCV3_64
     .pointer_wrap = arc_cpu_pointer_wrap,
-#else
-    .pointer_wrap = cpu_pointer_wrap_uint32,
-#endif
 #endif
 
 #ifdef CONFIG_USER_ONLY
