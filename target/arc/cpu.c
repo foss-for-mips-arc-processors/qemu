@@ -565,6 +565,7 @@ static const Property arc_properties[] = {
 #endif
 };
 
+/* TODO: Add vmstate_arc_cpu and set dc->vmsd */
 static void arc_cpu_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
