@@ -224,7 +224,6 @@ typedef struct {
     bool exit_on_halt;
     uint32_t rf_banks;
     bool firq;
-    bool has_interrupts;
     bool has_timer0;
     bool has_timer1;
     uint32_t freq_hz; /* CPU frequency in Hz, used to drive the timers */

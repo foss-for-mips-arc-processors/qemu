@@ -557,8 +557,6 @@ static const Property arc_properties[] = {
     DEFINE_PROP_BOOL("exit-on-halt", ArchCPU, cfg.exit_on_halt, true),
     DEFINE_PROP_UINT32("rf-banks", ArchCPU, cfg.rf_banks, 1),
     DEFINE_PROP_BOOL("firq", ArchCPU, cfg.firq, true),
-    /* TODO: Implement using of has-interrupt option */
-    DEFINE_PROP_BOOL("has-interrupts", ArchCPU, cfg.has_interrupts, true),
     DEFINE_PROP_BOOL("has-timer0", ArchCPU, cfg.has_timer0, true),
     DEFINE_PROP_BOOL("has-timer1", ArchCPU, cfg.has_timer1, true),
     DEFINE_PROP_UINT32("freq-hz", ArchCPU, cfg.freq_hz, 100000000),
