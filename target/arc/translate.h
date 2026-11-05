@@ -1400,6 +1400,11 @@ static inline uint32_t arc_get_insn_length_by_address(DisasContext *ctx, vaddr p
     ARC_DEF_TRANS_STUB(name)
 #endif
 
+/*
+ * TODO: *_COND translators raise illegal-operand exceptions in the register
+ * loaders before arc_gen_cc_prologue. A false predicate must not fault a
+ * correctly encoded instruction.
+ */
 #define ARC_DEF_TRANS_R32_R32_R32_F_COND(handler, name, r0, r1, r2, f, cond) \
     static bool trans_##name(DisasContext *ctx, arg_##name *a) \
     { \
