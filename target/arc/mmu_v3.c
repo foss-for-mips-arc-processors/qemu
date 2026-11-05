@@ -14,15 +14,12 @@ typedef enum {
     ARC_MMU_TYPE_V48_4K  = 0x1,
     ARC_MMU_TYPE_V48_16K = 0x2,
     ARC_MMU_TYPE_V48_64K = 0x3,
-    ARC_MMU_TYPE_V52     = 0x4,
     ARC_MMU_TYPE_END
 } ARCMMUType;
 
 typedef enum {
     ARC_MMU_TABLE_SIZE_V48_16 = 16,
-    ARC_MMU_TABLE_SIZE_V48_25 = 25,
-    ARC_MMU_TABLE_SIZE_V52_12 = 12,
-    ARC_MMU_TABLE_SIZE_V52_22 = 22
+    ARC_MMU_TABLE_SIZE_V48_25 = 25
 } ARCMMUTableSize;
 
 typedef enum {
@@ -93,7 +90,6 @@ typedef struct {
  * V48-4K:  9-9-9-9-12, L2 1GB, L3 2MB, L4 4KB. T0SZ=25 skips L1.
  * V48-16K: 1-11-11-11-14, L2 table-only, L3 32MB. T0SZ=25 skips L1 (L2 keeps 3).
  * V48-64K: 6-13-13-16, L2 512MB, L3 64KB page (no L4). T0SZ=25 skips L1 (L2 keeps 10).
- * V52:     10-13-13-16, L1 4TB, L2 512MB, L3 64KB. T0SZ=22 skips L1.
  */
 static const ARCMMUScheme arc_mmu_schemes[] = {
     {
@@ -278,32 +274,6 @@ static const ARCMMUScheme arc_mmu_schemes[] = {
             { 0 },
         },
     },
-    {
-        .type = ARC_MMU_TYPE_V52,
-        .tsz = ARC_MMU_TABLE_SIZE_V52_12,
-        .pa_bits = 52,
-        .nlevels = 3,
-        .root_shift = 13,
-        .levels = {
-            { .index_bits = 10, .table_alignment = 16, .block_alignment = 42, .allow_table = true, .allow_block = true },
-            { .index_bits = 13, .table_alignment = 16, .block_alignment = 29, .allow_table = true, .allow_block = true },
-            { .index_bits = 13, .block_alignment = 16, .allow_page = true },
-            { 0 },
-        },
-    },
-    {
-        .type = ARC_MMU_TYPE_V52,
-        .tsz = ARC_MMU_TABLE_SIZE_V52_22,
-        .pa_bits = 52,
-        .nlevels = 3,
-        .root_shift = 16,
-        .levels = {
-            { 0 },
-            { .index_bits = 13, .table_alignment = 16, .block_alignment = 29, .allow_table = true, .allow_block = true },
-            { .index_bits = 13, .block_alignment = 16, .allow_page = true },
-            { 0 },
-        },
-    },
 };
 
 static ARCMMUType arc_mmu_get_type(CPUARCState *env)
@@ -315,7 +285,7 @@ static ARCMMUType arc_mmu_get_type(CPUARCState *env)
 #ifdef TARGET_ARCV3_32
     g_assert(type == ARC_MMU_TYPE_V32);
 #else
-    g_assert(type > ARC_MMU_TYPE_V32 && type <= ARC_MMU_TYPE_V52);
+    g_assert(type > ARC_MMU_TYPE_V32 && type <= ARC_MMU_TYPE_V48_64K);
 #endif
 
     return type;
@@ -334,11 +304,6 @@ static uint32_t arc_mmu_sanitize_tsz(ARCMMUType type, uint32_t tsz)
     case ARC_MMU_TYPE_V48_64K:
         if (tsz != ARC_MMU_TABLE_SIZE_V48_16 && tsz != ARC_MMU_TABLE_SIZE_V48_25) {
             return ARC_MMU_TABLE_SIZE_V48_16;
-        }
-        return tsz;
-    case ARC_MMU_TYPE_V52:
-        if (tsz != ARC_MMU_TABLE_SIZE_V52_12 && tsz != ARC_MMU_TABLE_SIZE_V52_22) {
-            return ARC_MMU_TABLE_SIZE_V52_12;
         }
         return tsz;
     default:
@@ -401,15 +366,7 @@ static hwaddr arc_mmu_extract_addr(uint64_t raw, uint8_t addr_shift,
 static hwaddr arc_mmu_pte_addr(uint64_t raw, uint8_t addr_shift,
                                const ARCMMUScheme *scheme)
 {
-    /*
-     * MMUv52: PA[47:16] in desc[47:16], PA[51:48] in desc[15:12].
-     * MMUv32/v48: PA[pa_bits-1:alignment] is stored in the same PTE bits.
-     */
-    if (scheme->type == ARC_MMU_TYPE_V52) {
-        raw = (extract64(raw, 16, 32) << 16) |
-              ((uint64_t)extract64(raw, 12, 4) << 48);
-    }
-
+    /* PA[pa_bits-1:alignment] is stored in the same PTE bits */
     return arc_mmu_extract_addr(raw, addr_shift, scheme->pa_bits);
 }
 
@@ -677,12 +634,7 @@ ARCMMUTranslateResult arc_mmu_translate(CPUARCState *env, target_ulong vaddr,
 
     g_assert(scheme != NULL);
 
-    if (scheme->type == ARC_MMU_TYPE_V52) {
-        /* RTP does not store low 4 bits for MMUv52, adjust it for the extractor */
-        root_table_addr = arc_mmu_extract_addr(rtp << 4, scheme->root_shift, scheme->pa_bits);
-    } else {
-        root_table_addr = arc_mmu_extract_addr(rtp, scheme->root_shift, scheme->pa_bits);
-    }
+    root_table_addr = arc_mmu_extract_addr(rtp, scheme->root_shift, scheme->pa_bits);
 
     qemu_log_mask(CPU_LOG_MMU,
                   "arc: mmu: translate vaddr=0x" TARGET_FMT_lx

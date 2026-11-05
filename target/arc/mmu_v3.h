@@ -37,8 +37,8 @@ enum {
 /*
  * Root and PTE output addresses are not a descriptor field. Extract
  * bits [pa_bits-1 : alignment] from the RTP or PTE word. MMUv32 uses
- * a 40-bit PA. MMUv52 PTEs pack PA[47:16] in bits[47:16] and PA[51:48]
- * in bits[15:12].
+ * a 40-bit PA and MMUv48 uses a 48-bit PA. MMUv52 is not supported
+ * because TARGET_PHYS_ADDR_SPACE_BITS is 48.
  */
 
 target_ulong arc_aux_mmu_tlb_data0_read(CPUARCState *env, uintptr_t retaddr);

@@ -229,7 +229,7 @@ typedef struct {
     bool has_timer1;
     uint32_t freq_hz; /* CPU frequency in Hz, used to drive the timers */
 #ifdef TARGET_ARCV3_64
-    uint32_t mmu_type; /* MMU_BUILD.TYPE: 1=V48-4K, 2=V48-16K, 3=V48-64K, 4=V52 */
+    uint32_t mmu_type; /* MMU_BUILD.TYPE: 1=V48-4K, 2=V48-16K, 3=V48-64K */
 #endif
 } ArcCPUConfig;
 

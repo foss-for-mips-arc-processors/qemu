@@ -380,9 +380,9 @@ static void arc_cpu_realize(DeviceState *dev, Error **errp)
 #endif
 
 #ifdef TARGET_ARCV3_64
-    if (cpu->cfg.mmu_type < 1 || cpu->cfg.mmu_type > 4) {
-        error_setg(errp, "mmu-type must be 1 (V48-4K), 2 (V48-16K), "
-                   "3 (V48-64K) or 4 (V52)");
+    if (cpu->cfg.mmu_type < 1 || cpu->cfg.mmu_type > 3) {
+        error_setg(errp, "mmu-type must be 1 (V48-4K), 2 (V48-16K) "
+                   "or 3 (V48-64K)");
         return;
     }
     cpu->aux_mmu_build = FIELD_DP32(cpu->aux_mmu_build, AUX_MMU_BUILD, TYPE,
