@@ -17,7 +17,7 @@ static void arc_sim_load_kernel(ARCCPU *cpu, MachineState *machine) {
     const char *kernel_filename = machine->kernel_filename;
     uint64_t elf_entry;
     int elf_machine;
-    int success;
+    ssize_t success;
 
     if (kernel_filename) {
 #if defined(TARGET_ARCV2)
@@ -31,12 +31,15 @@ static void arc_sim_load_kernel(ARCCPU *cpu, MachineState *machine) {
 #endif
 
         success = load_elf(kernel_filename, NULL, NULL, NULL, &elf_entry,
-                               NULL, NULL, NULL, 0, elf_machine, 0, 0);
-
-        if (success > 0) {
-            cpu->env.pc = (target_ulong) elf_entry;
-            cpu->env.gpr[ARC_REGNUM_PCL] = (target_ulong) arc_pc_to_pcl(elf_entry);
+                           NULL, NULL, NULL, 0, elf_machine, 0, 0);
+        if (success < 0) {
+            error_report("could not load kernel '%s': %s",
+                         kernel_filename, load_elf_strerror(success));
+            exit(EXIT_FAILURE);
         }
+
+        cpu->env.pc = (target_ulong) elf_entry;
+        cpu->env.gpr[ARC_REGNUM_PCL] = (target_ulong) arc_pc_to_pcl(elf_entry);
     }
 }
 
