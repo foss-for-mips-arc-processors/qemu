@@ -121,22 +121,22 @@ static void arc_load_kernel(ARCCPU *cpu, MachineState *machine)
 #error "Unsupported target"
 #endif
 
-    int success = load_elf(machine->kernel_filename, NULL, NULL, NULL, &elf_entry,
-                           NULL, NULL, NULL, 0, elf_machine, 0, 0);
+    ssize_t success = load_elf(machine->kernel_filename, NULL, NULL, NULL, &elf_entry,
+                               NULL, NULL, NULL, 0, elf_machine, 0, 0);
 
     if (success < 0) {
-        int is_linux;
+        int is_linux = 0;
 
         success = load_uimage(machine->kernel_filename, &elf_entry, NULL,
                               &is_linux, NULL, NULL);
-        if (!is_linux) {
+        if (success >= 0 && !is_linux) {
             error_report("Wrong U-Boot image, only Linux kernel is supported");
             exit(EXIT_FAILURE);
         }
     }
 
     if (success < 0) {
-        error_report("No kernel image found");
+        error_report("could not load kernel '%s'", machine->kernel_filename);
         exit(EXIT_FAILURE);
     }
 
