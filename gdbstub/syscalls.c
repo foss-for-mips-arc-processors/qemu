@@ -12,6 +12,7 @@
 
 #include "qemu/osdep.h"
 #include "qemu/error-report.h"
+#include "exec/gdbstub.h"
 #include "semihosting/semihost.h"
 #include "system/runstate.h"
 #include "gdbstub/user.h"
@@ -28,11 +29,7 @@ typedef struct {
 
 static GDBSyscallState gdbserver_syscall_state;
 
-/*
- * Return true if there is a GDB currently connected to the stub
- * and attached to a CPU
- */
-static bool gdb_attached(void)
+bool gdb_attached(void)
 {
     return gdbserver_state.init && gdbserver_state.c_cpu;
 }

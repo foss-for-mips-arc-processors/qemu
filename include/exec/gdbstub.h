@@ -60,6 +60,14 @@ void gdb_unregister_coprocessor_all(CPUState *cpu);
 bool gdbserver_start(const char *port_or_device, Error **errp);
 
 /**
+ * gdb_attached() - Check if a GDB is attached to a CPU.
+ *
+ * Return true if there is a GDB currently connected to the stub
+ * and attached to a CPU
+ */
+bool gdb_attached(void);
+
+/**
  * gdb_feature_builder_init() - Initialize GDBFeatureBuilder.
  * @builder: The builder to be initialized.
  * @feature: The feature to be filled.
