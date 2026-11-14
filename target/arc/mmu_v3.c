@@ -598,7 +598,7 @@ ARCMMUTranslateResult arc_mmu_translate(CPUARCState *env, target_ulong vaddr,
     uint32_t t1sz;
     uint32_t tsz;
     ARCMMURegion region;
-    const ARCMMUScheme *scheme;
+    const ARCMMUScheme *scheme = NULL;
     hwaddr root_table_addr;
     uint64_t rtp;
 
@@ -629,6 +629,7 @@ ARCMMUTranslateResult arc_mmu_translate(CPUARCState *env, target_ulong vaddr,
     for (int i = 0; i < ARRAY_SIZE(arc_mmu_schemes); i++) {
         if (arc_mmu_schemes[i].type == mmu_type && arc_mmu_schemes[i].tsz == tsz) {
             scheme = &arc_mmu_schemes[i];
+            break;
         }
     }
 
