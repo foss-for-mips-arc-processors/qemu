@@ -588,7 +588,7 @@ static void arc_cpu_class_init(ObjectClass *klass, const void *data)
     cc->disas_set_info = arc_cpu_disas_set_info;
     cc->gdb_read_register = arc_cpu_gdb_read_register;
     cc->gdb_write_register = arc_cpu_gdb_write_register;
-    cc->gdb_stop_before_watchpoint = true;
+    cc->gdb_stop_before_watchpoint = false;
     cc->gdb_arch_name = arc_gdb_arch_name;
 #if defined(TARGET_ARCV2)
     cc->gdb_core_xml_file = GDB_ARCV2_REG_CORE_XML;
