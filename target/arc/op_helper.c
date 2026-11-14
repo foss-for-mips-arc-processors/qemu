@@ -5,6 +5,7 @@
 #include "qemu/log.h"
 #include "exec/helper-proto.h"
 #ifndef CONFIG_USER_ONLY
+#include "exec/gdbstub.h"
 #include "system/runstate.h"
 #include "irq.h"
 #endif
@@ -104,6 +105,14 @@ void HELPER(brk)(CPUARCState *env)
     }
 
     CPUState *cs = env_cpu(env);
+
+#ifndef CONFIG_USER_ONLY
+    /* Do not halt on BRK_S while debugging, it's a breakpoint */
+    if (gdb_attached()) {
+        cs->exception_index = EXCP_DEBUG;
+        cpu_loop_exit_restore(cs, GETPC());
+    }
+#endif
 
     arc_halt(cs);
 }
