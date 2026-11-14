@@ -67,6 +67,7 @@ static int arc_cpu_gdb_read_aux(CPUState *cs, GByteArray *mem_buf, int regnum)
 {
     ARCCPU *cpu = ARC_CPU(cs);
     CPUARCState *env = &cpu->env;
+    arc_aux_status_t status;
     target_ulong regval = 0;
 
     switch (regnum) {
@@ -80,7 +81,10 @@ static int arc_cpu_gdb_read_aux(CPUState *cs, GByteArray *mem_buf, int regnum)
         regval = env->aux_lp_end;
         break;
     case GDB_ARCV2_REG_AUX_STATUS32:
-        regval = arc_pack_status32(&env->aux_status32);
+        /* Report a CPU as halted while debugging (copy nSIM's behavior) */
+        status = env->aux_status32;
+        status.halt = 1;
+        regval = arc_pack_status32(&status);
         break;
     case GDB_ARCV2_REG_AUX_BTA:
         regval = env->aux_bta;
@@ -115,6 +119,7 @@ static void arc_gdb_write_status32(CPUARCState *env, uint32_t value)
     arc_unpack_status32(&status, value);
 
     /* Halt flag cannot be changed by a debugger */
+    /* TODO: nSIM allows clearing H. Does it make sense in QEMU? */
     status.halt = env->aux_status32.halt;
 
     /* Switch registers banks if needed */
