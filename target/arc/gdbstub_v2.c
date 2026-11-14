@@ -25,10 +25,10 @@ int arc_cpu_gdb_read_register(CPUState *cs, GByteArray *mem_buf, int n)
         regval = env->gpr[60];
         break;
     case GDB_ARCV2_REG_CORE_R63:
-        regval = env->gpr[63];
+        regval = arc_pc_to_pcl(env->pc);
         break;
     default:
-        g_assert_not_reached();
+        return 0;
     }
 
     return gdb_get_reg32(mem_buf, regval);
@@ -54,10 +54,10 @@ int arc_cpu_gdb_write_register(CPUState *cs, uint8_t *mem_buf, int n)
         env->gpr[60] = regval;
         break;
     case GDB_ARCV2_REG_CORE_R63:
-        env->gpr[63] = regval;
+        /* Ignore writes to PCL */
         break;
     default:
-        g_assert_not_reached();
+        return 0;
     }
 
     return sizeof(regval);
@@ -101,16 +101,74 @@ static int arc_cpu_gdb_read_aux(CPUState *cs, GByteArray *mem_buf, int regnum)
         regval = env->aux_efa;
         break;
     default:
-        error_report("ARC: GDB: unsupported AUX register: " TARGET_FMT_lx "\n", regnum);
-        exit(EXIT_FAILURE);
+        return 0;
     }
 
     return gdb_get_reg32(mem_buf, regval);
 }
 
+static void arc_gdb_write_status32(CPUARCState *env, uint32_t value)
+{
+    arc_aux_status_t status;
+    uint32_t new_bank;
+
+    arc_unpack_status32(&status, value);
+
+    /* Halt flag cannot be changed by a debugger */
+    status.halt = env->aux_status32.halt;
+
+    /* Switch registers banks if needed */
+    new_bank = status.register_bank;
+    status.register_bank = env->aux_status32.register_bank;
+    env->aux_status32 = status;
+
+    arc_cpu_switch_gpr_bank(env, new_bank);
+}
+
 static int arc_cpu_gdb_write_aux(CPUState *cs, uint8_t *mem_buf, int regnum)
 {
-    return 4;
+    ARCCPU *cpu = ARC_CPU(cs);
+    CPUARCState *env = &cpu->env;
+    uint32_t regval = ldl_p(mem_buf);
+
+    switch (regnum) {
+    case GDB_ARCV2_REG_AUX_PC:
+        cpu_set_pc(cs, arc_align_2_bytes(regval));
+        break;
+    case GDB_ARCV2_REG_AUX_LP_START:
+        /* TODO: TBs must be flushed here */
+        env->aux_lp_start = arc_align_2_bytes(regval);
+        break;
+    case GDB_ARCV2_REG_AUX_LP_END:
+        //* TODO: TBs must be flushed here */
+        env->aux_lp_end = arc_align_2_bytes(regval);
+        break;
+    case GDB_ARCV2_REG_AUX_STATUS32:
+        arc_gdb_write_status32(env, regval);
+        break;
+    case GDB_ARCV2_REG_AUX_BTA:
+        env->aux_bta = regval;
+        break;
+    case GDB_ARCV2_REG_AUX_ERSTATUS:
+        arc_unpack_aux_erstatus(&env->aux_erstatus, regval);
+        break;
+    case GDB_ARCV2_REG_AUX_ERBTA:
+        env->aux_erbta = regval;
+        break;
+    case GDB_ARCV2_REG_AUX_ECR:
+        arc_unpack_aux_ecr(&env->aux_ecr, regval);
+        break;
+    case GDB_ARCV2_REG_AUX_ERET:
+        env->aux_eret = regval;
+        break;
+    case GDB_ARCV2_REG_AUX_EFA:
+        env->aux_efa = regval;
+        break;
+    default:
+        return 0;
+    }
+
+    return sizeof(regval);
 }
 
 void arc_cpu_register_gdb_regs_for_features(CPUState *cs)
