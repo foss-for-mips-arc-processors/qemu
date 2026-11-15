@@ -515,9 +515,17 @@ static bool arc_mmu_access_ok(int prot, MMUAccessType type)
     }
 }
 
+static void arc_mmu_set_fault_sts(CPUARCState *env, bool debug, uint32_t level)
+{
+    /* Debug translations must not change CPU state */
+    if (!debug) {
+        env->aux_mmu_fault_sts = level;
+    }
+}
+
 static ARCMMUTranslateResult arc_mmu_walk(CPUARCState *env, const ARCMMUScheme *scheme,
                                  uint32_t tsz, target_ulong vaddr, hwaddr root,
-                                 MMUAccessType type, bool user,
+                                 MMUAccessType type, bool user, bool debug,
                                  hwaddr *paddr, int *prot)
 {
     hwaddr table_addr = root;
@@ -546,7 +554,7 @@ static ARCMMUTranslateResult arc_mmu_walk(CPUARCState *env, const ARCMMUScheme *
 
         /* Failed to get a record from memory */
         if (tx != MEMTX_OK) {
-            env->aux_mmu_fault_sts = arch_level;
+            arc_mmu_set_fault_sts(env, debug, arch_level);
             return ARC_MMU_TRANSLATE_MISS;
         }
 
@@ -557,7 +565,7 @@ static ARCMMUTranslateResult arc_mmu_walk(CPUARCState *env, const ARCMMUScheme *
 
         rec = arc_mmu_unpack_record(raw, lvl, scheme);
         if (rec.kind == ARC_MMU_RECORD_INVALID) {
-            env->aux_mmu_fault_sts = arch_level;
+            arc_mmu_set_fault_sts(env, debug, arch_level);
             return ARC_MMU_TRANSLATE_MISS;
         }
 
@@ -570,26 +578,26 @@ static ARCMMUTranslateResult arc_mmu_walk(CPUARCState *env, const ARCMMUScheme *
         }
 
         if (!rec.block.af) {
-            env->aux_mmu_fault_sts = arch_level;
+            arc_mmu_set_fault_sts(env, debug, arch_level);
             return ARC_MMU_TRANSLATE_ACCESS_FLAG;
         }
 
         *paddr = rec.addr | (vaddr & MAKE_64BIT_MASK(0, lvl->block_alignment));
         *prot = arc_mmu_leaf_prot(env, &rec, user, table_attributes);
 
-        if (!arc_mmu_access_ok(*prot, type)) {
+        if (!debug && !arc_mmu_access_ok(*prot, type)) {
             return ARC_MMU_TRANSLATE_PROTV;
         }
 
         return ARC_MMU_TRANSLATE_OK;
     }
 
-    env->aux_mmu_fault_sts = scheme->nlevels;
+    arc_mmu_set_fault_sts(env, debug, scheme->nlevels);
     return ARC_MMU_TRANSLATE_MISS;
 }
 
 ARCMMUTranslateResult arc_mmu_translate(CPUARCState *env, target_ulong vaddr,
-                               MMUAccessType type, bool user,
+                               MMUAccessType type, bool user, bool debug,
                                hwaddr *paddr, int *prot)
 {
     bool enabled = FIELD_EX32(env->aux_mmu_ctrl, AUX_MMU_CTRL, EN);
@@ -613,7 +621,7 @@ ARCMMUTranslateResult arc_mmu_translate(CPUARCState *env, target_ulong vaddr,
     region = arc_mmu_get_region(vaddr, t0sz, t1sz);
 
     if (region == ARC_MMU_REGION_HOLE) {
-        env->aux_mmu_fault_sts = 0;
+        arc_mmu_set_fault_sts(env, debug, 0);
         return ARC_MMU_TRANSLATE_HOLE;
     }
 
@@ -646,7 +654,8 @@ ARCMMUTranslateResult arc_mmu_translate(CPUARCState *env, target_ulong vaddr,
                   region == ARC_MMU_REGION_RTP0 ? "RTP0" : "RTP1",
                   root_table_addr);
 
-    return arc_mmu_walk(env, scheme, tsz, vaddr, root_table_addr, type, user, paddr, prot);
+    return arc_mmu_walk(env, scheme, tsz, vaddr, root_table_addr, type, user,
+                        debug, paddr, prot);
 }
 
 G_NORETURN void arc_mmu_raise(CPUARCState *env, ARCMMUTranslateResult result,

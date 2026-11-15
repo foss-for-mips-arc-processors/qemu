@@ -94,7 +94,7 @@ static int arc_mmu_page_prot(uint32_t pd1, bool user)
  * caller decides whether to update TLBPD0 and raise an exception.
  */
 ARCMMUTranslateResult arc_mmu_translate(CPUARCState *env, target_ulong vaddr,
-                               MMUAccessType type, bool user,
+                               MMUAccessType type, bool user, bool debug,
                                hwaddr *paddr, int *prot)
 {
     arc_mmu_tlb_entry_t *base, *hit = NULL;
@@ -111,7 +111,7 @@ ARCMMUTranslateResult arc_mmu_translate(CPUARCState *env, target_ulong vaddr,
     /* The upper 2 GB are not translated and reserved for the kernel */
     if (vaddr >= ARC_MMU_TRANSLATED_END) {
         /* Upper 2 GB are not available in user mode when MMU is enabled */
-        if (user) {
+        if (user && !debug) {
             return ARC_MMU_TRANSLATE_PROTV;
         }
 
@@ -140,7 +140,7 @@ ARCMMUTranslateResult arc_mmu_translate(CPUARCState *env, target_ulong vaddr,
         return ARC_MMU_TRANSLATE_OVERLAP;
     }
 
-    if (!arc_mmu_permitted(hit->pd1, user, type)) {
+    if (!debug && !arc_mmu_permitted(hit->pd1, user, type)) {
         return ARC_MMU_TRANSLATE_PROTV;
     }
 

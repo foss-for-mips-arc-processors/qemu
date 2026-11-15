@@ -22,7 +22,7 @@ typedef enum {
 } ARCMMUTranslateResult;
 
 ARCMMUTranslateResult arc_mmu_translate(CPUARCState *env, target_ulong vaddr,
-                               MMUAccessType type, bool user,
+                               MMUAccessType type, bool user, bool debug,
                                hwaddr *paddr, int *prot);
 G_NORETURN void arc_mmu_raise(CPUARCState *env, ARCMMUTranslateResult result,
                               MMUAccessType access_type, target_ulong address,

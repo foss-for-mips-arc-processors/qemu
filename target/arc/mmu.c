@@ -14,7 +14,8 @@ bool arc_mmu_tlb_fill(CPUState *cs, vaddr address, int size,
     int prot;
     ARCMMUTranslateResult result;
 
-    result = arc_mmu_translate(env, address, access_type, user, &paddr, &prot);
+    result = arc_mmu_translate(env, address, access_type, user, false,
+                               &paddr, &prot);
     if (result == ARC_MMU_TRANSLATE_OK) {
         tlb_set_page(cs, address & TARGET_PAGE_MASK, paddr & TARGET_PAGE_MASK,
                      prot, mmu_idx, TARGET_PAGE_SIZE);
@@ -34,7 +35,7 @@ bool arc_mmu_get_paddr(CPUARCState *env, target_ulong vaddr,
     int prot;
     bool user = arc_in_user_mode(env);
 
-    return arc_mmu_translate(env, vaddr, access_type, user, paddr, &prot)
+    return arc_mmu_translate(env, vaddr, access_type, user, false, paddr, &prot)
            == ARC_MMU_TRANSLATE_OK;
 }
 
@@ -44,7 +45,7 @@ hwaddr arc_cpu_get_phys_page_debug(CPUState *cs, vaddr addr)
     hwaddr paddr;
     int prot;
 
-    if (arc_mmu_translate(env, addr, MMU_DATA_LOAD, false, &paddr, &prot)
+    if (arc_mmu_translate(env, addr, MMU_DATA_LOAD, false, true, &paddr, &prot)
         == ARC_MMU_TRANSLATE_OK) {
         return paddr;
     }
