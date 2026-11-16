@@ -562,6 +562,18 @@ static arc_aux_record_t aux_records[] = {
 
 static size_t aux_records_length = sizeof(aux_records) / sizeof(arc_aux_record_t);
 
+static bool arc_aux_is_bcr(target_ulong aux_regnum)
+{
+    switch (aux_regnum) {
+    case 0x060 ... 0x07F:
+    case 0x0C0 ... 0x0FF:
+    case 0xF60 ... 0xFFF:
+        return true;
+    default:
+        return false;
+    }
+}
+
 static target_ulong do_aux_reg_read_tl(CPUARCState *env, target_ulong aux_regnum, uintptr_t retaddr)
 {
     arc_aux_record_t *record = NULL;
@@ -575,6 +587,16 @@ static target_ulong do_aux_reg_read_tl(CPUARCState *env, target_ulong aux_regnum
 
     /* This AUX register is not supported yet */
     if (record == NULL) {
+        if (arc_aux_is_bcr(aux_regnum)) {
+            /* BCR reads in user mode always raise Privilege Violation */
+            if (arc_in_user_mode(env)) {
+                arc_aux_raise_privilege_violation(env, retaddr);
+            }
+
+            /* All unimplemented BCRs in kernel mode read as 0 */
+            return 0;
+        }
+
         qemu_log_mask(LOG_GUEST_ERROR, "arc: aux: reading unsupported AUX register 0x" TARGET_FMT_lx "\n", aux_regnum);
         arc_aux_raise_illegal_instruction(env, retaddr);
     }
@@ -631,8 +653,8 @@ static void do_aux_reg_write_tl(CPUARCState *env, target_ulong aux_regnum, targe
 
     /* This AUX register is not supported yet */
     if (record == NULL) {
-        arc_aux_raise_illegal_instruction(env, retaddr);
         qemu_log_mask(LOG_GUEST_ERROR, "arc: aux: writing unsupported AUX register 0x" TARGET_FMT_lx "\n", aux_regnum);
+        arc_aux_raise_illegal_instruction(env, retaddr);
     }
 
     permission = record->permission;
