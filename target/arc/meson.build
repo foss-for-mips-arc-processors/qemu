@@ -9,14 +9,15 @@ arc_ss.add(gen)
 arc_ss.add(files(
   'atomic_helper.c',
   'cpu.c',
+  'gdbstub.c',
   'helper.c',
   'op_helper.c',
   'translate.c'
 ))
 
 arc_ss.add(when: 'TARGET_ARCV2', if_true: files('gdbstub_v2.c'))
-arc_ss.add(when: 'TARGET_ARCV3_32', if_true: files('gdbstub_v3_32.c'))
-arc_ss.add(when: 'TARGET_ARCV3_64', if_true: files('gdbstub_v3_64.c'))
+arc_ss.add(when: 'TARGET_ARCV3_32', if_true: files('gdbstub_v3.c'))
+arc_ss.add(when: 'TARGET_ARCV3_64', if_true: files('gdbstub_v3.c'))
 
 arc_system_ss = ss.source_set()
 arc_system_ss.add(files(

@@ -7,9 +7,11 @@
 
 #define GDB_ARCV3_32_ARCH         "arc64:32"
 #define GDB_ARCV3_32_REG_CORE_XML "arcv3-32bit-core.xml"
+#define GDB_ARCV3_32_REG_AUX_XML  "arcv3-32bit-aux.xml"
 
 #define GDB_ARCV3_64_ARCH         "arc64:64"
 #define GDB_ARCV3_64_REG_CORE_XML "arcv3-64bit-core.xml"
+#define GDB_ARCV3_64_REG_AUX_XML  "arcv3-64bit-aux.xml"
 
 enum gdb_v2_core_regs {
     GDB_ARCV2_REG_CORE_R0,
@@ -51,18 +53,17 @@ enum gdb_v2_core_regs {
     GDB_ARCV2_REG_CORE_LAST
 };
 
-/* The order here is strictly tied with gdb-xml/arc-v2-aux.xml. */
 enum gdb_v2_aux_regs {
-    GDB_ARCV2_REG_AUX_PC,            /* program counter */
-    GDB_ARCV2_REG_AUX_LP_START,      /* loop body start */
-    GDB_ARCV2_REG_AUX_LP_END,        /* loop body end   */
-    GDB_ARCV2_REG_AUX_STATUS32,      /* status flag     */
-    GDB_ARCV2_REG_AUX_BTA,           /* branch target address */
-    GDB_ARCV2_REG_AUX_ERSTATUS,      /* exception return status  */
-    GDB_ARCV2_REG_AUX_ERBTA,         /* exception return BTA     */
-    GDB_ARCV2_REG_AUX_ECR,           /* exception cause register */
-    GDB_ARCV2_REG_AUX_ERET,          /* exception return address */
-    GDB_ARCV2_REG_AUX_EFA,           /* exception fault address  */
+    GDB_ARCV2_REG_AUX_PC,       /* program counter */
+    GDB_ARCV2_REG_AUX_LP_START, /* loop body start */
+    GDB_ARCV2_REG_AUX_LP_END,   /* loop body end */
+    GDB_ARCV2_REG_AUX_STATUS32, /* status flag */
+    GDB_ARCV2_REG_AUX_BTA,      /* branch target address */
+    GDB_ARCV2_REG_AUX_ERSTATUS, /* exception return status */
+    GDB_ARCV2_REG_AUX_ERBTA,    /* exception return BTA */
+    GDB_ARCV2_REG_AUX_ECR,      /* exception cause register */
+    GDB_ARCV2_REG_AUX_ERET,     /* exception return address */
+    GDB_ARCV2_REG_AUX_EFA,      /* exception fault address */
     GDB_ARCV2_REG_AUX_LAST
 };
 
@@ -99,11 +100,30 @@ enum gdb_v3_core_regs {
     GDB_ARCV3_REG_CORE_R29, /* ILINK */
     GDB_ARCV3_REG_CORE_R30, /* GP */
     GDB_ARCV3_REG_CORE_R31, /* BLINK */
-    GDB_ARCV3_REG_CORE_R58, /* ACCL (little endian), ACC0 for HS6x */
-    GDB_ARCV3_REG_CORE_R59, /* ACCH (little endian), RESERVED for HS6x */
+#ifdef TARGET_ARCV3_32
+    GDB_ARCV3_REG_CORE_R58, /* ACCL (little endian) */
+    GDB_ARCV3_REG_CORE_R59, /* ACCH (little endian) */
+#else
+    GDB_ARCV3_REG_CORE_R58, /* ACC0 */
+#endif
     GDB_ARCV3_REG_CORE_R63, /* PCL */
     GDB_ARCV3_REG_CORE_LAST
 };
+
+enum gdb_v3_aux_regs {
+    GDB_ARCV3_REG_AUX_PC,       /* program counter */
+    GDB_ARCV3_REG_AUX_STATUS32, /* status flag */
+    GDB_ARCV3_REG_AUX_BTA,      /* branch target address */
+    GDB_ARCV3_REG_AUX_ERSTATUS, /* exception return status */
+    GDB_ARCV3_REG_AUX_ERBTA,    /* exception return BTA */
+    GDB_ARCV3_REG_AUX_ECR,      /* exception cause register */
+    GDB_ARCV3_REG_AUX_ERET,     /* exception return address */
+    GDB_ARCV3_REG_AUX_EFA,      /* exception fault address */
+    GDB_ARCV3_REG_AUX_LAST
+};
+
+uint32_t arc_gdb_read_status32(CPUARCState *env);
+void arc_gdb_write_status32(CPUARCState *env, uint32_t value);
 
 void arc_cpu_register_gdb_regs_for_features(CPUState *cs);
 
